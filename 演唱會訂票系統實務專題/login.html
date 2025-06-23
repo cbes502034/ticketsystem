@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>登入 - 演唱會搶票平台</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f2f2f2; margin: 0; padding: 0; }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; color: #333; }
+    form { display: flex; flex-direction: column; }
+    label { margin: 10px 0 5px; }
+    input[type="text"], input[type="password"], input[type="email"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    input[type="submit"] {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    input[type="submit"]:hover {
+      background-color: #0056b3;
+    }
+    .links { text-align: center; margin-top: 15px; }
+    .links a { color: #007BFF; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+
+    dialog {
+      border: 2px solid #666;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    button {
+      margin-top: 20px;
+      padding: 8px 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🔐 使用者登入</h2>
+    <form id="loginForm" method="post">
+      <label for="username">帳號</label>
+      <input type="text" id="username" name="username" required>
+
+      <label for="password">密碼</label>
+      <input type="password" id="password" name="password" required>
+
+      <label for="email">電子信箱</label>
+      <input type="email" id="email" name="email" required>
+
+      <input type="submit" value="登入">
+    </form>
+    <div class="links">
+      還沒有帳號？<a href="register.html">註冊新帳號</a>
+    </div>
+  </div>
+
+  <dialog id="sysDialog" method="post">
+    <form method="dialog">
+      <p id="sysMsg">登入結果</p>
+      <button>確定</button>
+    </form>
+  </dialog>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const dialog = document.getElementById("sysDialog");
+    const msg = document.getElementById("sysMsg");
+
+    form.onsubmit = async (e) => {
+  e.preventDefault();
+  const formData = new FormData(form);
+
+  const res = await fetch("/login", {
+    method: "POST",
+    body: formData
+  });
+
+  const result = await res.json();
+  console.log(result);
+
+  msg.textContent = result.message;
+  dialog.showModal();
+  dialog.addEventListener("close", () => {
+    if (result.login_status) {
+      //輸入正確，發送資料給api
+      const username = fetch("/login_success",{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({"username":result.username})
+      })
+      console.log(username);
+      window.location.href = "./index.html";
+    } 
+    else {
+      //輸入錯誤
+      window.location.href = "./login.html";
+    }
+  });
+};
+  </script>
+</body>
+</html>
