@@ -4,3 +4,4 @@ pymysql
 requests
 beautifulsoup4
 itsdangerous
+python-multipart
