@@ -231,21 +231,44 @@ async def get_informations(request:Request):
 @app.post("/hot_event")
 async def hot_event():
     html = "https://tixcraft.com"
-    r = requests.get(html+"/activity")
-    
-    t = bs(r.text,"lxml")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
+    }
 
-    t1 = t.find("div",{"id":"all"})
-    t1 = t1.find_all("div",{"class":"row align-items-center"})
+    try:
+        r = requests.get(html + "/activity", headers=headers, timeout=10)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        return JSONResponse(status_code=500, content={"error": "連線失敗", "detail": str(e)})
+
+    t = bs(r.text, "lxml")
+    t1 = t.find("div", {"id": "all"})
+    if not t1:
+        return JSONResponse(status_code=404, content={"error": "找不到活動區塊，可能是 Render IP 被封鎖或頁面結構改變"})
+
+    t1 = t1.find_all("div", {"class": "row align-items-center"})
     result = {}
-    
-    for index,data in enumerate(t1):
-        href = html + data.find("div",{"class":"text-bold pt-1 pb-1"}).find("a").get("href")
-        picture = data.find("img").get("src")
-        date = data.find("div",{"class":"text-small date"}).text
-        name = data.find("div",{"class":"text-bold pt-1 pb-1"}).find("a").text
-        result.update({index+1:{"name":name,"date":date,"picture":picture,"href":href}})
+
+    for index, data in enumerate(t1):
+        try:
+            href = html + data.find("div", {"class": "text-bold pt-1 pb-1"}).find("a").get("href")
+            picture = data.find("img").get("src")
+            date = data.find("div", {"class": "text-small date"}).text.strip()
+            name = data.find("div", {"class": "text-bold pt-1 pb-1"}).find("a").text.strip()
+
+            result.update({
+                index + 1: {
+                    "name": name,
+                    "date": date,
+                    "picture": picture,
+                    "href": href
+                }
+            })
+        except Exception as e:
+            result.update({index + 1: {"error": "部分資料解析失敗", "detail": str(e)}})
+
     return JSONResponse(result)
+
 
 @app.get("/hot_event/intro")
 @app.get("/hot_event/note")
