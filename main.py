@@ -309,5 +309,5 @@ async def hot_event_informations(request:Request):
     return JSONResponse({"intro":intro,"note":note,"buy-note":buy_note,"get-note":get_note,"refund-note":refund_note})
     
 #=======================================================================
-app.mount("/",StaticFiles(directory="演唱會訂票系統實務專題",html=True))
+app.mount("/",StaticFiles(directory="concert_frontend",html=True))
 
