@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>會員中心 - 演唱會搶票平台</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 80px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h3 {
+      color: #007BFF;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+    }
+
+    /* ✅ 這段是你要的欄位寬度調整，只動這裡 */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .info-table th, .info-table td {
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+    .info-table th {
+      background-color: #f0f0f0;
+      width: 30%;
+      white-space: nowrap;
+    }
+    .info-table td {
+      width: 70%;
+      word-break: break-word;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #f9f9f9;
+    }
+
+    .actions {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .actions a {
+      margin: 0 15px;
+      padding: 8px 16px;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 4px;
+      text-decoration: none;
+    }
+    .actions a:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>👤 會員中心</h2>
+
+    <!-- 🔵 個人資訊區塊 -->
+    <div class="section">
+      <h3>🧾 個人資訊</h3>
+      <table class="info-table">
+        <tr><th>帳號</th><td id="username"></td></tr>
+        <tr><th>姓名</th><td id="real_name"></td></tr>
+        <tr><th>性別</th><td id="gender"></td></tr>
+        <tr><th>生日</th><td id="birthday"></td></tr>
+        <tr><th>身分證字號</th><td id="id_number"></td></tr>
+        <tr><th>電子信箱</th><td id="email"></td></tr>
+        <tr><th>公司電話號碼</th><td id="phone_office"></td></tr>
+        <tr><th>家用電話號碼</th><td id="phone_home"></td></tr>
+        <tr><th>手機號碼</th><td id="mobile"></td></tr>
+        <tr><th>住家地址</th><td id="address"></td></tr>
+      </table>
+    </div>
+
+    <!-- 🔵 訂票紀錄區塊 -->
+    <div class="section">
+      <h3>🎫 訂票紀錄</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>活動</th>
+            <th>票種</th>
+            <th>區域</th>
+            <th>數量</th>
+            <!--<th>狀態</th>-->
+          </tr>
+        </thead>
+        <tbody id="ticket_table">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 🔵 功能按鈕區塊 -->
+    <div class="actions">
+      <a href="/">🏠 返回首頁</a>
+      <a href="logout.html" >🚪 登出</a>
+    </div>
+  </div>
+
+  <!-- 🔵 JS 保留原樣 -->
+  <script>
+    async function get_informations(){
+      let response = await fetch("/get_informations",{
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+
+      const informations = await response.json();
+      console.log(informations);
+      document.getElementById("username").textContent = informations.username;
+      document.getElementById("real_name").textContent = informations.real_name;
+      document.getElementById("gender").textContent = informations.gender;
+      document.getElementById("birthday").textContent = informations.birthday;
+      document.getElementById("id_number").textContent = informations.id_number;
+      document.getElementById("email").textContent = informations.email;
+      document.getElementById("phone_office").textContent = informations.phone_office;
+      document.getElementById("phone_home").textContent = informations.phone_home;
+      document.getElementById("mobile").textContent = informations.mobile;
+      document.getElementById("address").textContent = informations.address;
+
+      const ticket_table = document.getElementById("ticket_table");
+      const ticket = informations.ticket;
+
+      ticket_table.innerHTML = "";
+      for(let i=0;i<ticket.length;i++){
+        const tr = document.createElement("tr");
+        const row = ticket[i];
+        for(let j=1;j<row.length;j++){
+          const td = document.createElement("td");
+          td.textContent = row[j];
+          tr.appendChild(td);
+        };
+        ticket_table.appendChild(tr);
+      };
+    };
+    get_informations();
+  </script>
+</body>
+</html>

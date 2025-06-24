@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>演唱會搶票平台</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; }
+    header, footer { background-color: #222; color: white; padding: 15px; text-align: center; position: relative; }
+    nav { background-color: #444; color: white; padding: 10px; text-align: center; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    section { padding: 20px; margin: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    form input, form select, form button { margin: 10px 0; padding: 8px; width: 100%; max-width: 400px; box-sizing: border-box; }
+    form button, input[type=submit] { background-color: #007BFF; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    form button:hover, input[type=submit]:hover { background-color: #0056b3; }
+    ul { list-style-type: none; padding: 0; }
+    ul li { padding: 10px 0; border-bottom: 1px solid #ddd; }
+    h2 { color: #333; }
+    .event-card { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background-color: #fff; }
+    .event-card strong { font-size: 1.1em; }
+    .event-card a { display: inline-block; margin-top: 5px; color: #007BFF; }
+    .event-card a:hover { text-decoration: underline; }
+
+    .user-box {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      display: inline-block;
+    }
+    .user-msg {
+      color: #fff;
+      font-size: 14px;
+    }
+    .logout-link {
+      color: #fff;
+      font-size: 14px;
+      text-decoration: underline;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎫 演唱會搶票平台</h1>
+    <div class="user-box">
+      <div class="avatar"></div>
+      <div class="user-msg" id="userMsg">尚未登入</div>
+      <a id="logout_link" href="logout.html" class="logout-link">登出</a>
+    </div>
+  </header>
+
+  <nav>
+    <a href="index.html">首頁</a>
+    <a href="events.html">活動列表</a>
+    <a href="ticket.html">購票專區</a>
+    <a href="javascript:void(0);" onclick="click_profile()">會員中心</a>
+    <a href="login.html">登入</a>
+    <a href="register.html">註冊</a>
+  </nav>
+
+  <section id="hot-event-section">
+    <h2>🔥 熱門活動</h2>
+  </section>
+
+  <section>
+    <h2>🎟️ 購票流程說明</h2>
+    <ol>
+      <li>選擇活動 → 點擊「立即搶票」</li>
+      <li>進入購票頁面，選擇票種、數量、區域</li>
+      <li>登入／註冊帳號</li>
+      <li>確認訂單，完成付款</li>
+      <li>至會員中心查詢訂票紀錄</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>📢 最新公告</h2>
+    <ul>
+      <li>2025/05/01 - BLACKPINK 台北站搶票將於 5/10 中午 12:00 開始</li>
+      <li>2025/04/25 - 五月天加開場次開賣倒數中</li>
+      <li>2025/04/10 - 新增信用卡付款與超商代碼付款方式</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>📞 聯絡我們 | 🛠️ 意見反饋 | 📜 關於我們</p>
+    <p>© 2025 演唱會搶票平台 All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    async function check_login() {
+      let response = await fetch("/check_login",{
+        method: "GET"
+      });
+      response = await response.json();
+      document.getElementById("userMsg").textContent = `${response.message}`;
+      console.log(response);
+      if (response.login_status) {
+        document.getElementById("logout_link").style.display = "inline";
+      }
+    };
+    
+
+    async function check_profile(){
+      
+      let response = await fetch("/check_profile",{
+          method: "GET",
+          credentials: "include"
+        });
+        response = await response.json();
+        console.log(response);
+        return response;
+    };
+    
+
+    async function click_profile(){
+      const response = await check_profile();
+      window.location.href = await response.profile_link;
+    }
+
+    async function check_ticket(){
+      let response = await fetch("/check_ticket",{
+        method: "GET",
+        credentials: "include"
+      });
+      response = await response.json();
+      console.log(response);
+      return response;
+    };
+   
+
+    async function click_ticket(){
+      const response = await check_ticket();
+      window.location.href = await response.ticket_link;
+    }
+
+    async function hot_event(){
+      let response = await fetch("/hot_event",{
+        method: "post"
+      });
+      response = await response.json();
+      console.log(response);
+      const section = document.getElementById("hot-event-section");
+      const length = Object.keys(response).length;
+      for(let i=1; i<=length; i++){
+        // 外層框架
+        const card = document.createElement("div");
+        card.style.marginBottom = "10px"; // 每筆資料之間留空隙
+        card.style.border = "1px solid #ccc";
+        card.style.padding = "10px";
+        card.style.borderRadius = "5px";
+        card.style.background = "#fff";
+        card.style.display = "flex"; // 橫向排列（圖片 + 文字）
+        card.style.gap = "10px";     // 圖片和文字的間距
+        card.style.flexDirection = "column";
+        card.style.gap = "10px"; 
+        card.style.width = "450px";
+
+        const data = response[i];
+
+        const br = document.createElement("br");
+
+        const a = document.createElement("a");
+        a.href = "#";
+        a.onclick = function(){
+          window.location.href = `/event.html?hot_event=${JSON.stringify(data)}`;
+        };
+
+        const img = document.createElement("img");
+        img.src = response[i].picture;
+        img.style.width = "400px";
+        img.style.height = "auto";
+        img.style.display = "block";
+        img.style.margin = "0 auto";
+
+        a.appendChild(img);
+
+        const textBox = document.createElement("div");
+        textBox.style.textAlign = "center";
+
+        /*
+        async function intro_fetch(){
+          let info = await fetch("/hot_event/informations",{
+              method: "POST",
+              body: JSON.stringify(data.href)
+          });
+          info = await info.json();
+          console.log(info);
+        };
+        */
+        //const note = document.createElement("a");
+        //const buy_note = document.createElement("a");
+        //const get_note = document.createElement("a");
+        //const refund_note = document.createElement("a");
+        const strong = document.createElement("strong");
+        const dateDiv = document.createElement("div");
+        dateDiv.style.fontSize = "14px";
+        dateDiv.style.color = "brown";
+
+        strong.textContent = data.name;
+        dateDiv.textContent = data.date;
+
+        textBox.appendChild(a);
+        textBox.appendChild(br);
+        textBox.appendChild(strong);
+        textBox.appendChild(dateDiv);
+
+        card.appendChild(textBox);
+        section.appendChild(card);
+      };  
+    };
+    
+    function __init__(){
+      check_login();
+      check_profile();
+      check_ticket();
+      hot_event();
+    };
+
+    __init__();
+  </script>
+</body>
+</html>

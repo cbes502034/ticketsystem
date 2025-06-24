@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>訂票完成</title>
+  <meta http-equiv="refresh" content="3;url=index.html">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e9f7ef;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 100px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(0,0,0,0.15);
+    }
+    h2 { color: #28a745; margin-bottom: 20px; }
+    p { font-size: 16px; color: #333; }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    a:hover {
+      background-color: #0056b3;
+    }
+    small { color: gray; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>✅ 訂票成功！</h2>
+    <p>您的訂票已完成，我們已收到您的資料。</p>
+    <p>系統將在 <strong>3 秒後</strong> 自動導回首頁。</p>
+    <small>若未跳轉，您也可以 <a href="index.html">點此回首頁</a></small>
+  </div>
+  <script>
+    async function ticket_success(){
+      let response = await fetch("/ticket_success",{
+        method: "GET"
+      })
+      response = await response.json();
+      console.log(response);
+    }
+    ticket_success();
+  </script>
+</body>
+</html>

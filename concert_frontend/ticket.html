@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>購票頁面 - 演唱會搶票平台</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef2f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 80px auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 5px;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button[type="button"] {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    button[type="button"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    button[type="button"]:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    dialog {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      text-align: center;
+    }
+
+    dialog button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #confirm {
+      background-color: #28a745;
+      color: white;
+    }
+
+    #cancel {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    table {
+      margin: 0 auto;
+      text-align: left;
+      border-collapse: collapse;
+    }
+
+    td {
+      padding: 4px 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎟️ 選擇票種與數量</h2>
+    <form id="form">
+      <label for="event">演唱會場次</label>
+      <select id="event" name="event" required>
+        <option value="">請選擇活動</option>
+        <option value="mayday">五月天 台北小巨蛋</option>
+        <option value="jaychou">周杰倫 高雄巨蛋</option>
+        <option value="blackpink">BLACKPINK 台北大巨蛋</option>
+        <option value="jjlin">林俊傑 台中洲際棒球場</option>
+      </select>
+
+      <label for="type_">票種</label>
+      <select id="type_" name="type_" required>
+        <option value="vip">VIP - $4800</option>
+        <option value="rock">搖滾區 - $3600</option>
+        <option value="normal">普通區 - $2400</option>
+      </select>
+
+      <label for="zone">區域</label>
+      <select id="zone" name="zone">
+        <option>紅區</option>
+        <option>黃區</option>
+        <option>藍區</option>
+      </select>
+
+      <label for="quantity">數量</label>
+      <input type="number" id="quantity" name="quantity" min="1" max="4" value="1" required>
+
+      <button type="button" onclick="get_ticket_informations();">立即購票</button>
+    </form>
+
+    <!-- ✅ 新增：dialog 彈窗 -->
+    <dialog id="dialog">
+      <p><strong>請確認您的訂票內容：</strong></p>
+      <table id="message"></table>
+      <button id="confirm" onclick="confirm();">確定</button>
+      <button id="cancel" onclick="cancel();">取消</button>
+    </dialog>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const dialog = document.getElementById("dialog");
+    const message = document.getElementById("message");
+    const confirmBtn = document.getElementById("confirm");
+    const cancelBtn = document.getElementById("cancel");
+
+    async function get_ticket_informations() {
+      let event_status = false;
+      const event = form.event.value;
+      const type_ = form.type_.value;
+      const zone = form.zone.value;
+      const quantity = form.quantity.value;
+      let ticket_informations = null;
+
+      if (!event) {
+        event_status = false;
+        alert("請先選擇活動！");
+      } 
+      else {
+        if (ticket_informations == null) {
+          let response = await fetch(`get_ticket_informations?event=${event}&type_=${type_}&zone=${zone}&quantity=${quantity}`, {
+          method: "GET",
+        });
+        event_status = true;
+        ticket_informations = await response.json();
+        console.log(ticket_informations);
+        message.innerHTML = `
+          <tr><td>演唱會場次：</td><td>${ticket_informations.event}</td></tr>
+          <tr><td>票種：</td><td>${ticket_informations.type_}</td></tr>
+          <tr><td>區域：</td><td>${ticket_informations.zone}</td></tr>
+          <tr><td>數量：</td><td>${ticket_informations.quantity}</td></tr>
+        `;
+        dialog.showModal();
+        }
+        return ticket_informations;
+      };
+    };
+    async function confirm(){
+      const response = await get_ticket_informations();
+      await fetch(`/load_ticket?event=${response.event}&type_=${response.type_}&zone=${response.zone}&quantity=${response.quantity}`,{
+        method: "GET"
+      })
+      window.location.href = response.link;
+    };
+
+    async function cancel(){
+      dialog.close();
+    };
+  </script>
+</body>
+</html>

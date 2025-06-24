@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>帳號建立成功 - 演唱會搶票平台</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f2f2f2; margin: 0; padding: 0; }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h2 { color: #28a745; }
+    p { margin-top: 10px; color: #666; }
+    a { color: #007BFF; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎉 帳號建立成功</h2>
+    <p>您已成功註冊帳號，系統將在 <strong>3 秒後</strong> 返回首頁</p>
+    <p><small>尚未跳轉？<a href="/">請點此返回首頁</a></small></p>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 3000);
+  </script>
+</body>
+</html>

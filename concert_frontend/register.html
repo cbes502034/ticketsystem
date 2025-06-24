@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>註冊 - 演唱會搶票平台</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f2f2f2; margin: 0; padding: 0; }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; color: #333; }
+    form { display: flex; flex-direction: column; }
+    label { margin: 10px 0 5px; }
+    input[type="text"], input[type="password"], input[type="email"], input[type="date"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    input[type="submit"] {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    input[type="submit"]:hover {
+      background-color: #1e7e34;
+    }
+    .links { text-align: center; margin-top: 15px; }
+    .links a { color: #007BFF; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📝 註冊帳號</h2>
+    <form action="/account_created" method="post">
+      
+      <label for="username">帳號（Login ID）</label>
+      <input type="text" id="username" name="username" required>
+
+      <label for="id_number">身分證 / 護照號碼</label>
+      <input type="text" id="id_number" name="id_number" required>
+
+      <label for="password">密碼</label>
+      <input type="password" id="password" name="password" required>
+
+      <label for="confirm">確認密碼</label>
+      <input type="password" id="confirm" name="confirm" required>
+
+      <label for="real_name">會員姓名（真實姓名）</label>
+      <input type="text" id="real_name" name="real_name" required>
+
+      <label>性別</label>
+      <select name="gender" required>
+        <option value="male">男 Male</option>
+        <option value="female">女 Female</option>
+      </select>
+
+      <label for="birthday">生日（西元）</label>
+      <input type="date" id="birthday" name="birthday" required>
+
+      <label for="email">電子信箱</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="email_confirm">確認信箱</label>
+      <input type="email" id="email_confirm" name="email_confirm" required>
+
+      <label for="phone_office">聯絡電話（公司）</label>
+      <input type="text" id="phone_office" name="phone_office">
+
+      <label for="phone_home">聯絡電話（住家）</label>
+      <input type="text" id="phone_home" name="phone_home">
+
+      <label for="mobile">手機號碼</label>
+      <input type="text" id="mobile" name="mobile" placeholder="例：0912345678 或 +819012345678" required>
+
+      <label for="address">聯絡地址</label>
+      <input type="text" id="address" name="address" required>
+
+      <input type="submit" value="建立帳號">
+    </form>
+
+    <div class="links">
+      已有帳號？<a href="login.html">返回登入</a>
+    </div>
+  </div>
+</body>
+</html>
