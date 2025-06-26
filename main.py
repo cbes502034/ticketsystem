@@ -15,7 +15,7 @@ load_dotenv()
 USER = os.getenv("MYSQLUSER")
 PASSWORD = os.getenv("MYSQLPASSWORD")
 HOST = os.getenv("MYSQLHOST")
-PORT = os.getenv("MYSQLPORT")
+PORT = int(os.getenv("MYSQLPORT"))
 DATABASE = "GJun"
 KEY = "ticket_key"
 
