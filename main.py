@@ -7,12 +7,15 @@ import pymysql
 import requests
 from bs4 import BeautifulSoup as bs
 from bs4 import NavigableString
+import os
+from dotenv import load_dotenv
 
 app = FastAPI()
-USER = "root"
-PASSWORD = "FYDGhQBvnTqlGfWGJRZAWGczjPdnQWRZ"
-HOST = "tramway.proxy.rlwy.net"
-PORT = 53743
+load_dotenv()
+USER = os.getenv("MYSQLUSER")
+PASSWORD = os.getenv("MYSQLPASSWORD")
+HOST = os.getenv("MYSQLHOST")
+PORT = os.getnv("MYSQLPORT")
 DATABASE = "GJun"
 KEY = "ticket_key"
 
