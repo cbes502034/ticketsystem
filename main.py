@@ -4,9 +4,6 @@ from typing import Annotated
 from fastapi.responses import JSONResponse,PlainTextResponse,HTMLResponse,FileResponse,RedirectResponse 
 from fastapi.staticfiles import StaticFiles
 import pymysql
-import requests
-from bs4 import BeautifulSoup as bs
-from bs4 import NavigableString
 import os
 from dotenv import load_dotenv
 
@@ -230,87 +227,6 @@ async def get_informations(request:Request):
                              "ticket"],informations))
     
     return JSONResponse(informations)
-
-@app.post("/hot_event")
-async def hot_event():
-    html = "https://tixcraft.com"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
-    }
-
-    try:
-        r = requests.get(html + "/activity", headers=headers, timeout=10)
-        r.raise_for_status()
-    except requests.RequestException as e:
-        return JSONResponse(status_code=500, content={"error": "連線失敗", "detail": str(e)})
-
-    t = bs(r.text, "lxml")
-    t1 = t.find("div", {"id": "all"})
-    if not t1:
-        return JSONResponse(status_code=404, content={"error": "找不到活動區塊，可能是 Render IP 被封鎖或頁面結構改變"})
-
-    t1 = t1.find_all("div", {"class": "row align-items-center"})
-    result = {}
-
-    for index, data in enumerate(t1):
-        try:
-            href = html + data.find("div", {"class": "text-bold pt-1 pb-1"}).find("a").get("href")
-            picture = data.find("img").get("src")
-            date = data.find("div", {"class": "text-small date"}).text.strip()
-            name = data.find("div", {"class": "text-bold pt-1 pb-1"}).find("a").text.strip()
-
-            result.update({
-                index + 1: {
-                    "name": name,
-                    "date": date,
-                    "picture": picture,
-                    "href": href
-                }
-            })
-        except Exception as e:
-            result.update({index + 1: {"error": "部分資料解析失敗", "detail": str(e)}})
-
-    return JSONResponse(result)
-
-
-@app.get("/hot_event/intro")
-@app.get("/hot_event/note")
-@app.get("/hot_event/buy-note")
-@app.get("/hot_event/get-note")
-@app.get("/hot_event/refund-note")
-@app.post("/hot_event/informations")#改成四個api分別處理
-async def hot_event_informations(request:Request):
-    
-    def informations(Input):
-        '''抓取資料的方式需要再改善
-        img:src 抓到後放到前端上
-        a:href 抓到後顯示藍色
-        項目符號需要被抓取到
-        版面調整
-        '''
-        t1 = t.find("div",{"id":Input})
-        result = []
-        
-        for tag in t1.find_all():#尋找所有的標籤
-            for child in tag.contents:
-                if isinstance(child, NavigableString) and child.strip():
-                    result.append(child)
-        return result
-       
-    hot_event = await request.json()
-    
-    keyword = {"節目介紹":"intro","注意事項":"note","購票提醒":"buy-note","取票提醒":"get-note","退票說明":"refund-note"}
-    r = requests.get(hot_event.get("href"))
-    t = bs(r.text,"lxml")
-    
-    intro = informations(keyword.get("節目介紹"))
-    note = informations(keyword.get("注意事項"))
-    buy_note = informations(keyword.get("購票提醒"))
-    get_note = informations(keyword.get("取票提醒"))
-    refund_note = informations(keyword.get("退票說明"))
-    
-    return JSONResponse({"intro":intro,"note":note,"buy-note":buy_note,"get-note":get_note,"refund-note":refund_note})
-    
 #=======================================================================
 app.mount("/",StaticFiles(directory="concert_frontend",html=True))
 
