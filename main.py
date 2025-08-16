@@ -31,7 +31,7 @@ url = {"mysql":os.getenv("MYSQLPUBLICURL"),
 reqT = RequestTools()
 totpT = TotpTools()
 sqlT = SqlTools(URL=url["mysql"])
-redisT = RedisTools(URL=url["redis"]).r
+redisT = RedisTools(URL=url["redis"])
 
 KEY = "ticket_key"
 app.add_middleware(SessionMiddleware,secret_key=KEY)
@@ -98,6 +98,7 @@ async def GetTicketAvailability(request : Request):
 
 
 app.mount("/", StaticFiles(directory="Frontend", html=True))
+
 
 
 
