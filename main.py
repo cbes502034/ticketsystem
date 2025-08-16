@@ -88,6 +88,7 @@ async def CancelTicket(request : Request):
 
 @app.post("/ticket/restore")
 async def RestoreTicket(request : Request):
+    return {"status":True}
     response = await TicketModule.RestoreTicket(request=request,redisT=redisT)
     return response
 
@@ -98,6 +99,7 @@ async def GetTicketAvailability(request : Request):
 
 
 app.mount("/", StaticFiles(directory="Frontend", html=True))
+
 
 
 
