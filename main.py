@@ -3,12 +3,12 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .ProjectTools.SqlTools import SqlTools
-from .ProjectTools.RequestTools import RequestTools
-from .ProjectTools.TotpTools import TotpTools
-from .ProjectTools.RedisTools import RedisTools
+from ProjectTools.SqlTools import SqlTools
+from ProjectTools.RequestTools import RequestTools
+from ProjectTools.TotpTools import TotpTools
+from ProjectTools.RedisTools import RedisTools
 
-from .Modules import RegisterModule,LoginModule,IndexModule,LogoutModule,ProfileModule,TicketModule
+from Modules import RegisterModule,LoginModule,IndexModule,LogoutModule,ProfileModule,TicketModule
 
 '''
 app = FastAPI()
@@ -98,4 +98,5 @@ async def GetTicketAvailability(request : Request):
 
 
 app.mount("/", StaticFiles(directory="/Frontend", html=True))
+
 
