@@ -1,6 +1,10 @@
 fastapi
 uvicorn[standard]
 pymysql
+requests
 itsdangerous
 python-multipart
 python-dotenv
+pyotp
+qrcode
+Pillow
