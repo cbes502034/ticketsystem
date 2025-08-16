@@ -1,13 +1,13 @@
-import redis as redis_lib
+import redis
 from urllib.parse import urlparse
 
 class RedisBase:
     def __init__(self,url):
             self.url = urlparse(url)
-            self.r = redis_lib.Redis(host=self.url.hostname,
-                                     port=self.url.port,
-                                     password=self.url.password,
-                                     decode_responses=True)
+            self.r = redis.Redis(host=self.url.hostname,
+                                 port=self.url.port,
+                                 password=self.url.password,
+                                 decode_responses=True)
     def ParseSeatLockKey(self,key):
         key = dict(zip(["event_id","area","row","column"],key.split("[")[1].split("]")[0].split(":")))
         return key
@@ -95,3 +95,4 @@ class RedisTools(RedisBase):
             return {"status":False,
 
                     "notify":f"TicketRestoreError ! message : {type(e)} {e}"}
+
