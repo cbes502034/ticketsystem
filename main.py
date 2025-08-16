@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 app = FastAPI()
 load_dotenv()
 url = {"mysql":os.getenv("MYSQLPUBLICURL"),
-       "redis":os.getnv("REDISPUBLICURL")}
+       "redis":os.getenv("REDISPUBLICURL")}
 reqT = RequestTools()
 totpT = TotpTools()
 sqlT = SqlTools(URL=url["mysql"])
@@ -98,5 +98,6 @@ async def GetTicketAvailability(request : Request):
 
 
 app.mount("/", StaticFiles(directory="/Frontend", html=True))
+
 
 
