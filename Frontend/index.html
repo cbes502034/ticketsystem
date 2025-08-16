@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>演唱會搶票平台</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #1e1e1e; color: #fff; }
+    header, footer { background-color: #3d2e3c; color: white; padding: 15px; text-align: center; position: relative; }
+    nav { background-color: #c1adac; color: #222; padding: 10px; text-align: center; }
+    nav a { color: #222; margin: 0 15px; text-decoration: none; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    section { padding: 20px; margin: 20px; background-color: #2a2a2a; border-radius: 8px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .card { background-color: #fff; color: #000; padding: 15px; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-title { font-size: 18px; font-weight: bold; margin: 10px 0 5px; }
+    .card-date, .card-location { font-size: 14px; margin-bottom: 5px; }
+    .card button { align-self: flex-start; padding: 5px 10px; background-color: #8e6b64; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+    .user-box { position: absolute; top: 15px; right: 20px; display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; display: inline-block; }
+    .user-msg { color: #fff; font-size: 14px; }
+    .logout-link { color: #fff; font-size: 14px; text-decoration: underline; display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎫 演唱會搶票平台</h1>
+    <div class="user-box">
+      <div class="avatar"></div>
+      <div class="user-msg" id="userMsg"></div>
+      <a id="logout_link" onclick="Logout();" href="logout.html" class="logout-link">登出</a>
+    </div>
+  </header>
+
+  <nav>
+    <a href="index.html">首頁</a>
+    <a href="javascript:void(0);" onclick="HandleProfileClick()">會員中心</a>
+    <a href="javascript:void(0);" onclick="HandleLoginClick()">登入</a>
+    <a href="register.html">註冊</a>
+  </nav>
+
+  <section>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">Radiohead World Tour 2025</div>
+        <div class="card-date">2025-10-12</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Coldplay Music of the Spheres Live</div>
+        <div class="card-date">2025-11-05</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+      <div class="card">
+        <div class="card-title">David Bowie Tribute Concert</div>
+        <div class="card-date">2025-08-30</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Lady Gaga Chromatica Ball</div>
+        <div class="card-date">2025-09-21</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Linkin Park Legacy Tour</div>
+        <div class="card-date">2025-12-01</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+      <div class="card">
+        <div class="card-title">YOASOBI Asia Tour 2025</div>
+        <div class="card-date">2025-10-18</div>
+        <div class="card-location">台北大巨蛋</div>
+        <button onclick="HandleTicketClick_(event)">購票</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>📞 聯絡我們 | 🛠️ 意見反饋 | 📜 關於我們</p>
+    <p>© 2025 演唱會搶票平台 All Rights Reserved.</p>
+  </footer>
+
+  <script>
+    
+    function __init__(){ CheckUserLogin(); };
+    let User;
+    let profileNotify;
+    let loginNotify;
+    let ticketNotify;
+
+    async function CheckUserLogin(){
+      let response = await fetch("/auth/user",{ method: "GET" });
+      response = await response.json();
+      console.log(response);
+      document.getElementById("userMsg").textContent = response.session;
+      if (response.status){
+        User = true;
+        loginNotify = response.notify;
+        document.getElementById("logout_link").style.display = "inline";
+      } else {
+        User = false;
+        profileNotify = response.notify;
+        ticketNotify = response.notify;
+      }
+    };
+
+    function HandleProfileClick(){ User ? window.location.href = "profile.html" : alert(profileNotify); }
+    function HandleLoginClick(){ User ? alert(loginNotify) : window.location.href = "login.html"; }
+
+    async function Logout(){
+      fetch("/auth/logout",{ method: "GET" });
+    }
+
+    async function click_ticket(){
+      const response = await check_ticket();
+      window.location.href = await response.ticket_link;
+    }
+
+    function HandleTicketClick_(event) {
+      if (User){
+        const card = event.target.closest(".card");
+        const title = card.querySelector(".card-title").textContent;
+        const date = card.querySelector(".card-date").textContent;
+        const location = card.querySelector(".card-location").textContent;
+        window.location.href = `ticket.html?title=${title}`
+      }else{
+        alert(ticketNotify);
+      }
+      
+    }
+
+    __init__();
+  </script>
+</body>
+</html>
