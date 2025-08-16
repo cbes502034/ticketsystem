@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>演唱會座位圖</title>
+  <style>
+    body { background: white; text-align: center; font-family: sans-serif; }
+    .stage { width: 761px; height: 40px; background: black; color: white; line-height: 40px; margin: 20px auto; font-weight: bold; }
+
+    .seating-area { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .row { display: flex; justify-content: center; gap: 0; }
+    .seat { width: 15px; height: 15px; margin: 1px; border: 1px solid black; cursor: pointer; }
+    .rock { background-color: red; }
+    .a { background-color: yellow; }
+    .b, .c { background-color: orange; }
+    .d { background-color: pink; }
+
+    .selected { background-color: gray !important; }
+    .sold { background-color: #999 !important; }
+    .section-wrapper { display: flex; justify-content: center; gap: 5px; }
+    #confirm-btn { margin-top: 10px; cursor: pointer; }
+
+    .seating-area.loading { opacity: .6; }
+    .seating-area.loading .seat { pointer-events: none; }
+
+    dialog#ticket-modal { border: none; border-radius: 10px; box-shadow: 0 0 16px rgba(0,0,0,.25); padding: 0; width: 360px; }
+    .modal-header { position: relative; padding: 14px 16px; border-bottom: 4px solid #222; }
+    .modal-title { font-weight: 700; }
+    .modal-close { position: absolute; top: 8px; right: 8px; border: 2px solid #000; background: #fff; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: 900; }
+    .modal-body { padding: 18px 20px 8px; text-align: left; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    td { padding: 4px 0; }
+    .caption { color: #666; margin: 6px 0 10px; }
+    .countdown { text-align: center; font-weight: bold; color: #d9534f; }
+    .form-row { margin: 10px 0; }
+    #totp-input { width: 100%; font-size: 16px; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+    .modal-actions { display: flex; justify-content: space-between; padding: 12px 20px 20px; gap: 12px; }
+    .btn { flex: 1 1 0; padding: 10px 0; border: 2px solid #000; border-radius: 6px; background: #fff; cursor: pointer; font-weight: 700; }
+    .btn-primary { background: #007bff; color: #fff; border-color: #007bff; }
+    .btn-danger  { background: #fff; color: #000; }
+  </style>
+</head>
+<body>
+
+  <div class="stage">STAGE</div>
+
+  <div id="seatingArea" class="seating-area loading">
+    <div class="section-wrapper">
+      <div id="rock-left"></div>
+      <div id="rock-center"></div>
+      <div id="rock-right"></div>
+    </div>
+    <div class="section-wrapper">
+      <div id="b-area"></div>
+      <div id="a-area"></div>
+      <div id="c-area"></div>
+    </div>
+    <div class="section-wrapper">
+      <div style="width: 165px;"></div>
+      <div id="d-area"></div>
+      <div style="width: 165px;"></div>
+    </div>
+
+    <p id="info" style="color: red; font-weight: bold;">載入座位資料中…</p>
+    <button id="confirm-btn" disabled>確定</button>
+  </div>
+
+  <dialog id="ticket-modal">
+    <div class="modal-header">
+      <div class="modal-title">倒數</div>
+      <button id="modal-close" class="modal-close" aria-label="關閉">×</button>
+      <div id="countdown" class="countdown"></div>
+    </div>
+    <div class="modal-body">
+      <table id="ticket-table"></table>
+      <div class="caption">購票程序…</div>
+      <div class="form-row">
+        <label for="totp-input"><strong>totp 驗證碼</strong></label>
+        <input id="totp-input" type="text" placeholder="請輸入驗證碼" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-submit" class="btn btn-primary">確定</button>
+      <button id="btn-abandon" class="btn btn-danger">放棄</button>
+    </div>
+  </dialog>
+
+  <script>
+    // ---------- 全域狀態 ----------
+    let eventTitle = null;
+    let eventID = null;
+    let area = null, row = null, column = null, selectedSeat = null;
+
+    let appReady = false;
+    let lockActive = false;
+    let lockDeadlineMs = null;
+    let rafId = null;
+    let serverClientOffsetMs = 0;
+
+    const areaMap = {
+      "rock-left":"搖滾區左","rock-center":"搖滾區中","rock-right":"搖滾區右",
+      "a-area":"A區","b-area":"B區","c-area":"C區","d-area":"D區"
+    };
+    const toCN = (v) => areaMap[v] || v;
+    const normArea = (x) => toCN(String(x)).trim();
+
+    const modal = document.getElementById("ticket-modal");
+    const countdownEl = document.getElementById("countdown");
+    const ticketTable = document.getElementById("ticket-table");
+    const infoEl = document.getElementById("info");
+    const seatingArea = document.getElementById("seatingArea");
+    const confirmBtn = document.getElementById("confirm-btn");
+
+    const normalizeEventId = (obj) => obj?.event_id ?? obj?.eventID ?? obj?.id ?? null;
+
+    // ---------- 產生座位 ----------
+    function generateSeats(containerId, rows, cols, className) {
+      const container = document.getElementById(containerId);
+      for (let r = 0; r < rows; r++) {
+        const rowDiv = document.createElement("div"); rowDiv.className = "row";
+        for (let c = 0; c < cols; c++) {
+          const seat = document.createElement("button");
+          seat.className = `seat ${className}`;
+          seat.dataset.original = className;
+          seat.dataset.area = containerId;
+          seat.dataset.row = r + 1;
+          seat.dataset.col = c + 1;
+          seat.title = `${areaMap[containerId] || containerId} ${r + 1}排 ${c + 1}位`;
+          seat.disabled = true;
+          rowDiv.appendChild(seat);
+        }
+        container.appendChild(rowDiv);
+      }
+    }
+    generateSeats("rock-left", 5, 10, "rock");
+    generateSeats("rock-center", 5, 20, "rock");
+    generateSeats("rock-right", 5, 10, "rock");
+    generateSeats("b-area", 20, 10, "b");
+    generateSeats("a-area", 20, 20, "a");
+    generateSeats("c-area", 20, 10, "c");
+    generateSeats("d-area", 10, 20, "d");
+
+    // ---------- 時間工具 ----------
+    function serverNowFromHeaders(headers) {
+      try { const d = headers?.get?.('Date'); const t = d ? Date.parse(d) : NaN; return Number.isFinite(t) ? t : null; }
+      catch { return null; }
+    }
+    function deriveDeadlineMsFromTTLSeconds(ttlSeconds, headers) {
+      const clientNow = Date.now();
+      const srv = serverNowFromHeaders(headers) ?? clientNow;
+      return (typeof ttlSeconds === 'number' && ttlSeconds >= 0) ? (srv + ttlSeconds * 1000) : null;
+    }
+    const adjustedNowMs = () => Date.now() + serverClientOffsetMs;
+
+    // ---------- 倒數 ----------
+    function startCountdownLoop() {
+      stopCountdownLoop();
+      function tick() {
+        const remainMs = Math.max(0, (lockDeadlineMs ?? 0) - adjustedNowMs());
+        const sec = Math.floor(remainMs / 1000);
+        const ms  = remainMs % 1000;
+        const text = `鎖定剩餘：${sec}.${String(ms).padStart(3, "0")} 秒`;
+        if (modal.open) countdownEl.textContent = text;
+        if (remainMs <= 0) {
+          lockActive = false; lockDeadlineMs = null;
+          stopCountdownLoop();
+          if (modal.open) modal.close();
+          alert("鎖定時間已到，座位已釋放。請重新選擇。");
+          if (selectedSeat) selectedSeat.classList.remove("selected");
+          selectedSeat = null;
+          infoEl.textContent = "尚未選擇任何座位";
+          return;
+        }
+        rafId = requestAnimationFrame(tick);
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+    function stopCountdownLoop() {
+      if (rafId != null) cancelAnimationFrame(rafId);
+      rafId = null;
+      countdownEl.textContent = "";
+    }
+
+    // ---------- 點 seat ----------
+    document.addEventListener("click", async (e) => {
+      if (!e.target.classList.contains("seat")) return;
+      if (!appReady) return;
+      if (e.target.disabled) return;
+
+      if (selectedSeat) selectedSeat.classList.remove("selected");
+      e.target.classList.add("selected"); selectedSeat = e.target;
+
+      area   = normArea(e.target.dataset.area);
+      row    = e.target.dataset.row;
+      column = e.target.dataset.col;
+      infoEl.textContent = `${area} ${row}排 ${column}位`;
+
+      if (!eventID) return;
+
+      try {
+        const res = await fetch("/ticket/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_id: eventID })
+        });
+        const payload = await res.json();
+        if (payload?.status === false && payload?.notify) {
+          alert(payload.notify);
+          e.target.classList.remove("selected");
+          selectedSeat = null;
+          infoEl.textContent = "尚未選擇任何座位";
+          return;
+        }
+      } catch (err) {
+        console.error("ticket/check 失敗", err);
+        alert("檢查失敗，請稍後再試。");
+        e.target.classList.remove("selected");
+        selectedSeat = null;
+        infoEl.textContent = "尚未選擇任何座位";
+      }
+    });
+
+    // ---------- 主按鈕「確定」 ----------
+    confirmBtn.addEventListener("click", async () => {
+      if (!appReady) return;
+      if (!selectedSeat) { alert("請先選擇一個座位！"); return; }
+
+      if (lockActive && lockDeadlineMs && adjustedNowMs() < lockDeadlineMs) {
+        renderTicketTable();
+        modal.showModal();
+        return;
+      }
+
+      const ticketData = { area, row, column, event_id: eventID };
+      await tryLockAndOpen(ticketData);
+    });
+
+    async function tryLockAndOpen(ticketData) {
+      try {
+        const res = await fetch("/ticket/lock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ticketData)
+        });
+        const payload = await res.json();
+
+        if (payload?.status !== true) {
+          alert(payload?.notify || "鎖定失敗");
+
+          // 🚫 特別處理「不可多選」
+          if (payload?.notify?.includes("不可多選")) {
+            if (selectedSeat) {
+              selectedSeat.classList.remove("selected");
+              selectedSeat = null;
+            }
+            infoEl.textContent = "您已經在其他活動鎖票，請先完成或放棄再試。";
+          }
+
+          return false;
+        }
+
+        // ✅ 正常鎖定成功
+        const srv = serverNowFromHeaders(res.headers) ?? Date.now();
+        serverClientOffsetMs = srv - Date.now();
+
+        lockActive = true;
+        lockDeadlineMs = deriveDeadlineMsFromTTLSeconds(Number(payload.time), res.headers);
+
+        renderTicketTable();
+        ensureSeatSelectedInUI(ticketData);
+        modal.showModal();
+        if (lockDeadlineMs) startCountdownLoop();
+        document.getElementById("totp-input").focus();
+        return true;
+      } catch (err) {
+        console.error(err);
+        alert("鎖定請求失敗，請稍後再試。");
+        return false;
+      }
+    }
+
+    function ensureSeatSelectedInUI({ area: areaCN, row: r, column: c }, opts = {}) {
+      areaCN = normArea(areaCN);
+      const domId = Object.keys(areaMap).find(k => areaMap[k] === areaCN) || null;
+      if (!domId) return;
+      const container = document.getElementById(domId);
+      if (!container) return;
+
+      if (selectedSeat) selectedSeat.classList.remove("selected");
+
+      const rowIdx = Number(r) - 1;
+      const colIdx = Number(c) - 1;
+      const rowDiv = container.children[rowIdx];
+      if (!rowDiv) return;
+      const seatBtn = rowDiv.children[colIdx];
+      if (!seatBtn) return;
+
+      if (seatBtn.disabled && !opts.allowDisabledSelect) return;
+
+      seatBtn.classList.add("selected");
+      selectedSeat = seatBtn;
+
+      area = areaCN; row = String(r); column = String(c);
+      infoEl.textContent = `${area} ${row}排 ${column}位`;
+    }
+
+    function renderTicketTable() {
+      ticketTable.innerHTML = `
+        <tr><td>演唱會場次：</td><td>${eventTitle ?? ""}</td></tr>
+        <tr><td>區域：</td><td>${area ?? ""}</td></tr>
+        <tr><td>位置：</td><td>${row ?? ""}排${column ?? ""}位</td></tr>
+      `;
+    }
+
+    // ---------- 對話框控制 ----------
+    document.getElementById("modal-close").addEventListener("click", onCancelClicked);
+    document.getElementById("btn-abandon").addEventListener("click", onCancelClicked);
+    async function onCancelClicked() {
+      const ok = await surrenderLock({ event_id: eventID, area, row, column });
+      if (ok) {
+        lockActive = false;
+        lockDeadlineMs = null;
+        stopCountdownLoop();
+        if (selectedSeat) { selectedSeat.classList.remove("selected"); selectedSeat = null; }
+        infoEl.textContent = "已放棄本次鎖定";
+      } else {
+        console.warn("取消鎖定失敗或未實作 API");
+      }
+      modal.close();
+    }
+
+    document.getElementById("btn-submit").addEventListener("click", submitTotp);
+    async function submitTotp() {
+      if (!lockActive || !lockDeadlineMs || adjustedNowMs() >= lockDeadlineMs) {
+        alert("鎖定已失效，請重新選擇座位。");
+        if (modal.open) modal.close();
+        return;
+      }
+      const totp = document.getElementById("totp-input").value.trim();
+      if (!totp) { alert("請輸入驗證碼。"); return; }
+
+      const ticketData = { area, row, column, totpcode_input: totp, event_id: eventID };
+      try {
+        const res = await fetch("/ticket", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ticketData)
+        });
+        const payload = await res.json();
+        if (payload.status) {
+          alert("購票成功！");
+          modal.close();
+          window.location.href = "ticket_success.html";
+        } else {
+          console.log(payload);
+          alert(payload.notify || "購票失敗");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("送出失敗，請稍後再試。");
+      }
+    }
+
+    async function surrenderLock(payload) {
+      try {
+        const resp = await fetch("/ticket/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        return (data?.status ?? data?.response?.status) === true;
+      } catch (err) {
+        console.error("surrenderLock error:", err);
+        return false;
+      }
+    }
+
+    // ---------- 取得已購清單，反灰 ----------
+    async function GetTicketAvailability() {
+      const fail = () => {
+        infoEl.textContent = "載入失敗，請重新整理。";
+      };
+
+      try {
+        const res = await fetch("/ticket/availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: eventTitle })
+        });
+        const response = await res.json();
+        console.log(response);
+
+        eventID = response.event_id ?? response.eventID ?? response.id ?? eventID;
+
+        const purchased = response.purchased || [];
+        document.querySelectorAll(".seat").forEach(seat => {
+          const areaKey = normArea(seat.dataset.area);
+          const r = parseInt(seat.dataset.row, 10);
+          const c = parseInt(seat.dataset.col, 10);
+          const isPurchased = purchased.some(([dbArea, dbRow, dbCol]) =>
+            normArea(dbArea) === areaKey && Number(dbRow) === r && Number(dbCol) === c
+          );
+          if (isPurchased) {
+            seat.classList.add("sold");
+            seat.disabled = true;
+          }
+        });
+
+        await tryRestoreFromAPI();
+
+        seatingArea.classList.remove("loading");
+        infoEl.textContent = "請選擇座位";
+        confirmBtn.disabled = false;
+        document.querySelectorAll(".seat").forEach(seat => {
+          seat.disabled = seat.classList.contains("sold");
+        });
+        appReady = true;
+      } catch (err) {
+        console.error(err);
+        fail();
+      }
+    }
+
+    function isBenignRestoreMiss(payload) {
+      const msg = (payload?.notify || "").toString();
+      return (
+        msg.includes("沒有選位") ||
+        msg.includes("不啟動自動顯示購買畫面") ||
+        msg.toLowerCase().includes("no seat")
+      );
+    }
+
+    async function tryRestoreFromAPI() {
+      try {
+        const res = await fetch("/ticket/restore", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        const payload = await res.json();
+        console.log("[restore] payload =", payload);
+
+        const srv = serverNowFromHeaders(res.headers) ?? Date.now();
+        serverClientOffsetMs = srv - Date.now();
+
+        if (payload?.status === true) {
+          const s = payload.seat || payload;
+          const restoredId = normalizeEventId(s);
+
+          if (restoredId == null) {
+            console.warn("[restore] 回傳沒有 event_id，跳過恢復");
+            return;
+          }
+          if (eventID && String(eventID) !== String(restoredId)) {
+            console.warn("[restore] event_id 不一致，頁面 =", eventID, "恢復包 =", restoredId, "→ 跳過");
+            return;
+          }
+          eventID = String(restoredId);
+
+          area   = normArea(s.area);
+          row    = String(s.row);
+          column = String(s.column);
+
+          ensureSeatSelectedInUI({ area, row, column }, { allowDisabledSelect: true });
+
+          lockActive = true;
+          lockDeadlineMs = deriveDeadlineMsFromTTLSeconds(Number(payload.time), res.headers);
+
+          renderTicketTable();
+          modal.showModal();
+          if (lockDeadlineMs) startCountdownLoop();
+          document.getElementById("totp-input").focus();
+
+        } else if (payload?.status === false) {
+          if (!isBenignRestoreMiss(payload)) {
+            alert(payload.notify || "恢復失敗");
+          }
+        }
+      } catch (err) {
+        console.error("ticket/restore 失敗", err);
+      }
+    }
+
+    function setStageTitleFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      eventTitle = decodeURIComponent(params.get("title") || "STAGE");
+      document.querySelector(".stage").textContent = eventTitle;
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      setStageTitleFromURL();
+      await GetTicketAvailability();
+    });
+  </script>
+</body>
+</html>
