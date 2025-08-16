@@ -93,6 +93,4 @@ class RedisTools(RedisBase):
             return {"status":False,"notify":"不同的使用者 !"}
         except Exception as e:
             return {"status":False,
-
                     "notify":f"TicketRestoreError ! message : {type(e)} {e}"}
-
