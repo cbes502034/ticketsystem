@@ -96,4 +96,5 @@ async def GetTicketAvailability(request : Request):
     response = await TicketModule.CheckTicketPurchased(request=request,reqT=reqT,sqlT=sqlT)
     return JSONResponse(response)
 
-app.mount("/", StaticFiles(directory="Frontend", html=True))
+
+app.mount("/", StaticFiles(directory="../Frontend", html=True))
