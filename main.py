@@ -97,7 +97,8 @@ async def GetTicketAvailability(request : Request):
     return JSONResponse(response)
 
 
-app.mount("/", StaticFiles(directory="/Frontend", html=True))
+app.mount("/", StaticFiles(directory="Frontend", html=True))
+
 
 
 
