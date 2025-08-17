@@ -77,6 +77,7 @@ class RedisTools(RedisBase):
         
     
     def TicketRestore(self,userSeatIndexKey,registerID):
+        return{"userSeatIndexKey":userSeatIndexKey}
         try:
             seatLockKey = self.r.get(userSeatIndexKey)
             if not seatLockKey:
@@ -95,5 +96,6 @@ class RedisTools(RedisBase):
         except Exception as e:
             return {"status":False,
                     "notify":f"TicketRestoreError ! message : {type(e)} {e}"}
+
 
 
