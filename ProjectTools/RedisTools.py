@@ -32,7 +32,7 @@ class RedisTools(RedisBase):
             if lock==str(registerID):
                 return {"status":True,
                         "time":self.r.pttl(seatLockKey)/1000}
-            return {"status":False,"notify":"無法選位 !"}
+            return {"status":False,"notify":"此位置已經被選取，請稍後再試 !"}
         except Exception as e:
             return {"status":False,
                     "notify":f"TicketLockError ! message : {type(e)} {e}"}
@@ -95,6 +95,7 @@ class RedisTools(RedisBase):
         except Exception as e:
             return {"status":False,
                     "notify":f"TicketRestoreError ! message : {type(e)} {e}"}
+
 
 
 
