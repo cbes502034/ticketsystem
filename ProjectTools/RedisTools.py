@@ -18,6 +18,7 @@ class RedisTools(RedisBase):
     def __init__(self,URL):
         super().__init__(URL)
     def TicketLock(self,seatLockKey,userSeatIndexKey,registerID):
+        return{"seatLockKey":seatLockKey,"userSeatIndexKey":userSeatIndexKey,"registerID":registerID}
         try:
             lock = self.r.get(seatLockKey)
             if not lock:
@@ -94,3 +95,4 @@ class RedisTools(RedisBase):
         except Exception as e:
             return {"status":False,
                     "notify":f"TicketRestoreError ! message : {type(e)} {e}"}
+
