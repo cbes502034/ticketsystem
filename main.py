@@ -26,7 +26,7 @@ load_dotenv()
 
 app = FastAPI()
 url = {"mysql":os.getenv("MYSQLPUBLICURL"),
-       "redis":os.getenv("REDISPUBLICURL")}
+       "redis":os.getnv("REDISPUBLICURL")}
 reqT = RequestTools()
 totpT = TotpTools()
 sqlT = SqlTools(URL=url["mysql"])
@@ -185,5 +185,5 @@ app.mount("/", StaticFiles(directory="Frontend", html=True))
 改善建議:
     1.進入選位畫面後，等待資料回傳成功，才可進行選擇位置的動作(目前是反白)，也包括自動顯示購票視窗
     2.不論使用者有沒有購票程序進行中，希望是可以點選按鈕也可按下確定，但是不可以選擇購買
-    3.點選購買後，購買按鈕可以一直點選，這部分會有超賣問題，個人想法是 點選後再次點選->關掉點選功能 或 alert
+    3.購買完成後，驗證碼可以一直送，那就會一直重複購買，這部分會有超賣問題，個人想法是 點選後 -> 關掉點選功能 或 alert
 '''
