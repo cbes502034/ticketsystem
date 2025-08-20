@@ -26,7 +26,7 @@ load_dotenv()
 
 app = FastAPI()
 url = {"mysql":os.getenv("MYSQLPUBLICURL"),
-       "redis":os.getnv("REDISPUBLICURL")}
+       "redis":os.getenv("REDISPUBLICURL")}
 reqT = RequestTools()
 totpT = TotpTools()
 sqlT = SqlTools(URL=url["mysql"])
