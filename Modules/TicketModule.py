@@ -5,19 +5,19 @@ async def Lock(request,reqT,redisT):
     response = await reqT.GetJson(request = request)
     if response["status"]:
         try:
-            registerID = request.session["RegisterID"]
+            #registerID = request.session["RegisterID"]
+            loginID = request.session["UserID"]
             
             data = response["data"]
             area = data["area"]
             row = data["row"]
             column = data["column"]
-            
             event_id = data["event_id"]
             
             seatLockKey = f"<seatLock>:[{event_id}:{area}:{row}:{column}]"
-            userSeatIndexKey = f"<userSeatIndex>:[{registerID}]"
+            userSeatIndexKey = f"<userSeatIndex>:[{loginID}]"
             
-            TicketLock_result = redisT.TicketLock(seatLockKey=seatLockKey,userSeatIndexKey=userSeatIndexKey,registerID=registerID)
+            TicketLock_result = redisT.TicketLock(seatLockKey=seatLockKey,userSeatIndexKey=userSeatIndexKey,loginID=loginID)
             return TicketLock_result
         except Exception as e:
             return {"status":False,
@@ -53,7 +53,7 @@ async def GetTicketData(request,reqT,sqlT,totpT,redisT):
                 InsertTicketData_result = sqlT.InsertTicketData(registerID=registerID,event_id=event_id,area=area,row=row,column=column)
                 if InsertTicketData_result["status"]:
                     
-                    TicketSuccess_result = redisT.TicketSuccess(event_id=event_id,registerID=registerID)
+                    TicketSuccess_result = redisT.TicketSuccess(event_id=event_id,loginID=loginID)
                     if not TicketSuccess_result["status"]:
                         return TicketSuccess_result
                     
@@ -76,11 +76,12 @@ async def CheckTicket(request,reqT,redisT):
         try:
             
             data = response["data"]
-            registerID = request.session["RegisterID"]
-            event_id = data["event_id"]
+            #registerID = request.session["RegisterID"]
+            loginID = request.session["UserID"]
             userName = request.session["UserName"]
+            event_id = data["event_id"]
             
-            TicketCheck_result = redisT.TicketCheck(event_id=event_id,registerID=registerID,userName=userName)
+            TicketCheck_result = redisT.TicketCheck(event_id=event_id,loginID=loginID,userName=userName)
             return TicketCheck_result
         
         except Exception as e:
@@ -92,14 +93,15 @@ async def CancelTicket(request,reqT,redisT):
     response = await reqT.GetJson(request = request)
     if response["status"]:
         try:
-            registerID = request.session["RegisterID"]
+            #registerID = request.session["RegisterID"]
+            loginID = request.session["UserID"]
             data = response["data"]
             event_id = data["event_id"]
             area = data["area"]
             row = data["row"]
             column = data["column"]
             seatLockKey = f"<seatLock>:[{event_id}:{area}:{row}:{column}]"
-            userSeatIndexKey = f"<userSeatIndex>:[{registerID}]"
+            userSeatIndexKey = f"<userSeatIndex>:[{loginID}]"
             TicketCancel_result = redisT.TicketCancel(seatLockKey=seatLockKey,userSeatIndexKey=userSeatIndexKey)
             if TicketCancel_result["status"]:
                 TicketCancel_result["notify"] = f"{seatLockKey} 已釋放 !"
@@ -112,39 +114,43 @@ async def CancelTicket(request,reqT,redisT):
 
 async def RestoreTicket(request,redisT):
     try:
-        registerID = request.session["RegisterID"]
-        userSeatIndexKey = f"<userSeatIndex>:[{registerID}]"
-        TicketRestore_result = redisT.TicketRestore(userSeatIndexKey=userSeatIndexKey,registerID=registerID)
+        #registerID = request.session["RegisterID"]
+        loginID = request.session["UserID"]
+        userSeatIndexKey = f"<userSeatIndex>:[{loginID}]"
+        TicketRestore_result = redisT.TicketRestore(userSeatIndexKey=userSeatIndexKey,loginID=loginID)
         return TicketRestore_result
     except Exception as e:
         return {"status":False,
                 "notify":f"TicketModule_RestoreTicketError ! message : [{type(e)} {e}]"}
 
-async def CheckTicketPurchased(request,reqT,sqlT):
-
+async def CheckTicketPurchased(request, reqT, sqlT):
     response = await reqT.GetJson(request=request)
-    if response["status"]:
-        try:
-            data = response["data"]
-            title = data["title"]
-            
-            GetEventID_result = sqlT.GetEventID(title=title)
-            if GetEventID_result["status"]:
-                event_id = GetEventID_result["event_id"]
-            else:
-                return GetEventID_result
-            
-            GetPurchasedData_result = sqlT.GetPurchasedData(event_id=event_id)
-            
-            if GetPurchasedData_result["status"]:
-                purchasedData = GetPurchasedData_result["purchasedData"]
-            else:
-                return GetPurchasedData_result
-            return {"status":True,
-                    "purchased":jsonable_encoder(purchasedData),
-                    "event_id":event_id}
-        except Exception as e:
-            return {"status":False,
-                    "notify":f"TicketModule_CheckTicketPurchasedError ! message : [{type(e)} {e}]"}
+    if not response["status"]:
+        return response
 
-    return response
+    try:
+        data = response["data"]
+        event_id = data.get("event_id")
+        title = data.get("title")
+
+        if not event_id:
+            if not title:
+                return {"status": False, "notify": "請提供 event_id 或 title"}
+            get_id = sqlT.GetEventID(title=title)
+            if not get_id["status"]:
+                return get_id
+            event_id = get_id["event_id"]
+
+        purchased = sqlT.GetPurchasedData(event_id=event_id)
+        if not purchased["status"]:
+            return purchased
+
+        return {
+            "status": True,
+            "purchased": jsonable_encoder(purchased["purchasedData"]),
+            "event_id": event_id
+        }
+
+    except Exception as e:
+        return {"status": False,
+                "notify": f"TicketModule_CheckTicketPurchasedError ! message : [{type(e)} {e}]"}
